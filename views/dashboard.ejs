@@ -3,132 +3,305 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PhishSim Dashboard</title>
+  <title>JARVIS — PhishSim</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e0e0e0; }
-    .header { background:#12121a; padding:1rem 2rem; border-bottom:1px solid #1e1e2e; display:flex; justify-content:space-between; align-items:center; }
-    .header h1 { font-size:1.3rem; color:#fff; display:flex; align-items:center; gap:8px; }
-    .live-badge { display:inline-flex; align-items:center; gap:5px; background:#1a3a1a; color:#4caf50; padding:3px 10px; border-radius:12px; font-size:0.7rem; }
-    .live-badge .dot { width:6px; height:6px; border-radius:50%; background:#4caf50; animation:pulse 1.5s infinite; }
-    @keyframes pulse { 0%{opacity:1}50%{opacity:0.3}100%{opacity:1} }
-    .container { padding:1.5rem 2rem; max-width:1600px; margin:0 auto; }
-    .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem; }
-    .stat { background:#12121a; border:1px solid #1e1e2e; border-radius:12px; padding:1.2rem; }
-    .stat h3 { font-size:1.8rem; color:#e94560; }
-    .stat p { font-size:0.75rem; color:#888; text-transform:uppercase; letter-spacing:0.5px; }
-    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
-    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
-    .card { background:#12121a; border:1px solid #1e1e2e; border-radius:12px; padding:1.2rem; }
-    .card h2 { font-size:0.85rem; color:#aaa; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.8rem; }
-    #map { height:350px; border-radius:8px; }
-    canvas { max-height:200px; }
-    .toolbar { display:flex; gap:0.8rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center; }
-    input, select, button { padding:0.55rem 0.9rem; border:1px solid #1e1e2e; border-radius:8px; font-size:0.85rem; background:#12121a; color:#e0e0e0; }
-    input:focus, select:focus { outline:none; border-color:#e94560; }
-    button { background:#e94560; color:#fff; border:none; cursor:pointer; font-weight:600; }
-    button:hover { background:#d63851; }
-    button.sec { background:transparent; border:1px solid #333; }
-    button.sec:hover { border-color:#e94560; }
-    .table-wrap { overflow-x:auto; border-radius:8px; }
-    table { width:100%; border-collapse:collapse; font-size:0.8rem; }
-    th { background:#1a1a2a; color:#e94560; padding:0.7rem 0.5rem; text-align:left; white-space:nowrap; }
-    td { padding:0.6rem 0.5rem; border-bottom:1px solid #1a1a2a; white-space:nowrap; }
-    tr:hover { background:#1a1a2a; }
-    .badge { padding:2px 8px; border-radius:4px; font-size:0.7rem; }
-    .badge-desktop { background:#0f3460; color:#4fc3f7; }
-    .badge-mobile { background:#1b5e20; color:#81c784; }
-    .badge-tablet { background:#e65100; color:#ffcc80; }
-    .flag { font-size:1.1rem; }
-    .toast { position:fixed; bottom:20px; right:20px; background:#1a1a2e; border-left:4px solid #4caf50; padding:1rem; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.5); transform:translateY(100px); opacity:0; transition:all 0.4s ease; z-index:9999; max-width:350px; }
-    .toast.show { transform:translateY(0); opacity:1; }
-    .cmp-card { background:#12121a; border:1px solid #1e1e2e; border-radius:8px; padding:1rem; display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; }
-    .cmp-card .info { flex:1; }
-    .cmp-card .info strong { display:block; color:#fff; }
-    .cmp-card .info span { font-size:0.75rem; color:#888; }
-    .cmp-card .stats { display:flex; gap:1rem; margin:0 1rem; }
-    .cmp-card .stats div { text-align:center; }
-    .cmp-card .stats div b { display:block; color:#e94560; font-size:1.1rem; }
-    .cmp-card .stats div small { font-size:0.65rem; color:#888; }
-    .link-input { display:flex; gap:0.5rem; }
-    .link-input input { flex:1; min-width:200px; }
-    .result-box { margin-top:0.5rem; padding:0.5rem; background:#0a0a0f; border-radius:6px; font-size:0.8rem; word-break:break-all; }
-    .result-box a { color:#4fc3f7; }
-    .tab-bar { display:flex; gap:0; margin-bottom:1.5rem; border-bottom:1px solid #1e1e2e; }
-    .tab-bar button { background:transparent; border:none; border-bottom:2px solid transparent; border-radius:0; padding:0.6rem 1.2rem; color:#888; cursor:pointer; }
-    .tab-bar button.active { color:#e94560; border-bottom-color:#e94560; }
-    .tab { display:none; }
-    .tab.active { display:block; }
-    .delete-btn { background:transparent; border:1px solid #dc3545; color:#dc3545; padding:0.3rem 0.6rem; font-size:0.75rem; border-radius:4px; cursor:pointer; }
-    .delete-btn:hover { background:#dc3545; color:#fff; }
-    @media (max-width:900px) { .grid-2, .grid-3 { grid-template-columns:1fr; } }
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+
+    :root{
+      --bg:#08080f;
+      --bg2:#0c0c1a;
+      --bg3:#111122;
+      --cyan:#00f0ff;
+      --cyan-dim:rgba(0,240,255,0.08);
+      --red:#ff3355;
+      --red-dim:rgba(255,51,85,0.1);
+      --text:#b0b8d1;
+      --text-bright:#e0e8ff;
+      --border:rgba(0,240,255,0.12);
+      --glow-cyan:0 0 20px rgba(0,240,255,0.15);
+      --glow-red:0 0 20px rgba(255,51,85,0.15);
+    }
+
+    body{
+      font-family:'Inter','Segoe UI',sans-serif;
+      background:var(--bg);color:var(--text);min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    /* Scanline overlay */
+    body::after{
+      content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,240,255,0.015) 2px,rgba(0,240,255,0.015) 4px);
+      pointer-events:none;z-index:9998;
+    }
+
+    /* Grid background */
+    body::before{
+      content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+      background-image:
+        linear-gradient(rgba(0,240,255,0.03) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,240,255,0.03) 1px,transparent 1px);
+      background-size:60px 60px;pointer-events:none;z-index:-1;
+    }
+
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-track{background:var(--bg);}
+    ::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:2px;}
+
+    /* Header */
+    .header{
+      background:linear-gradient(180deg,rgba(0,240,255,0.04),transparent);
+      border-bottom:1px solid var(--border);padding:0.8rem 2rem;
+      display:flex;justify-content:space-between;align-items:center;
+      position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);
+    }
+    .header .brand{display:flex;align-items:center;gap:1rem;}
+    .header .brand .logo{
+      font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;
+      color:var(--cyan);letter-spacing:2px;text-transform:uppercase;
+      text-shadow:0 0 20px rgba(0,240,255,0.3);
+    }
+    .header .brand .logo span{color:var(--red);text-shadow:0 0 20px rgba(255,51,85,0.3);}
+    .header .brand .status{
+      display:flex;align-items:center;gap:6px;
+      font-size:0.65rem;color:var(--cyan);font-weight:500;letter-spacing:1px;
+      text-transform:uppercase;font-family:'JetBrains Mono',monospace;
+    }
+    .header .brand .status .dot{
+      width:6px;height:6px;border-radius:50%;background:var(--cyan);
+      animation:pulse-dot 1.5s infinite;
+    }
+    @keyframes pulse-dot{0%{opacity:1;box-shadow:0 0 6px var(--cyan)}50%{opacity:0.3;box-shadow:none}100%{opacity:1;box-shadow:0 0 6px var(--cyan)}}
+    .header .actions{display:flex;gap:0.8rem;align-items:center;}
+    .header .actions a{
+      font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text);
+      text-decoration:none;padding:0.3rem 0.8rem;border:1px solid var(--border);
+      border-radius:4px;transition:0.2s;letter-spacing:0.5px;
+    }
+    .header .actions a:hover{color:var(--cyan);border-color:var(--cyan);box-shadow:var(--glow-cyan);}
+    .header .actions .count{
+      font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--cyan);
+    }
+
+    .container{max-width:1600px;margin:0 auto;padding:1.5rem 2rem;}
+
+    /* Tab bar */
+    .tab-bar{
+      display:flex;gap:0;margin-bottom:1.5rem;border-bottom:1px solid var(--border);
+    }
+    .tab-bar button{
+      font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:1px;
+      background:transparent;border:none;border-bottom:2px solid transparent;
+      border-radius:0;padding:0.7rem 1.4rem;color:var(--text);
+      cursor:pointer;transition:0.2s;text-transform:uppercase;
+    }
+    .tab-bar button:hover{color:var(--text-bright);}
+    .tab-bar button.active{
+      color:var(--cyan);border-bottom-color:var(--cyan);
+      text-shadow:0 0 20px rgba(0,240,255,0.2);
+    }
+    .tab{display:none;}
+    .tab.active{display:block;}
+
+    /* Stat cards */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;}
+    .stat{
+      background:linear-gradient(135deg,var(--bg2),var(--bg3));
+      border:1px solid var(--border);border-radius:8px;padding:1.2rem;
+      position:relative;overflow:hidden;transition:0.3s;
+    }
+    .stat::before{
+      content:'';position:absolute;top:0;left:0;width:100%;height:2px;
+      background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+      opacity:0.5;
+    }
+    .stat:hover{box-shadow:var(--glow-cyan);transform:translateY(-1px);}
+    .stat h3{
+      font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;
+      color:var(--cyan);text-shadow:0 0 20px rgba(0,240,255,0.2);
+      line-height:1;
+    }
+    .stat p{font-size:0.65rem;color:var(--text);text-transform:uppercase;letter-spacing:1px;margin-top:0.3rem;font-weight:500;}
+    .stat.cred h3{color:var(--red);text-shadow:0 0 20px rgba(255,51,85,0.2);}
+    .stat.cred::before{background:linear-gradient(90deg,transparent,var(--red),transparent);}
+
+    /* Grid layouts */
+    .grid-2{display:grid;grid-template-columns:1.6fr 1fr;gap:1.2rem;margin-bottom:1.2rem;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;}
+    .card{
+      background:linear-gradient(135deg,var(--bg2),var(--bg3));
+      border:1px solid var(--border);border-radius:8px;padding:1.2rem;
+      position:relative;transition:0.3s;
+    }
+    .card:hover{border-color:rgba(0,240,255,0.2);}
+    .card h2{
+      font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--cyan);
+      text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.8rem;
+      display:flex;align-items:center;gap:8px;
+    }
+    .card h2::before{
+      content:'◆';font-size:0.5rem;color:var(--cyan);opacity:0.5;
+    }
+
+    /* Map - holographic globe */
+    #map{
+      height:380px;border-radius:6px;
+      filter: hue-rotate(180deg) saturate(0.5) brightness(1.2);
+    }
+    #map .leaflet-control-zoom a{
+      background:var(--bg3);color:var(--cyan);border-color:var(--border);
+    }
+    #map .leaflet-control-attribution{display:none;}
+
+    /* Charts */
+    canvas{max-height:180px;}
+    .card canvas{filter:drop-shadow(0 0 8px rgba(0,240,255,0.08));}
+
+    /* Table */
+    .table-wrap{overflow-x:auto;border-radius:6px;}
+    table{width:100%;border-collapse:collapse;font-size:0.72rem;}
+    th{
+      font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:1px;
+      background:rgba(0,240,255,0.04);color:var(--cyan);
+      padding:0.65rem 0.5rem;text-align:left;white-space:nowrap;
+      border-bottom:1px solid var(--border);font-weight:500;text-transform:uppercase;
+    }
+    td{padding:0.55rem 0.5rem;border-bottom:1px solid rgba(0,240,255,0.04);white-space:nowrap;color:var(--text);}
+    tr:hover td{background:rgba(0,240,255,0.02);}
+    td.ip{color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:0.7rem;}
+    td.email{color:#4ade80;}
+    td.pass{color:var(--red);}
+    .flag{font-size:1rem;}
+    .badge{
+      font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:0.5px;
+      padding:2px 8px;border-radius:3px;text-transform:uppercase;
+    }
+    .badge-desktop{background:rgba(0,240,255,0.08);color:var(--cyan);border:1px solid rgba(0,240,255,0.15);}
+    .badge-mobile{background:rgba(74,222,128,0.08);color:#4ade80;border:1px solid rgba(74,222,128,0.15);}
+    .badge-tablet{background:rgba(251,191,36,0.08);color:#fbbf24;border:1px solid rgba(251,191,36,0.15);}
+
+    /* Campaign cards */
+    .cmp-card{
+      background:linear-gradient(135deg,var(--bg2),var(--bg3));
+      border:1px solid var(--border);border-radius:6px;padding:0.8rem 1rem;
+      display:flex;justify-content:space-between;align-items:center;
+      margin-bottom:0.5rem;transition:0.2s;
+    }
+    .cmp-card:hover{border-color:rgba(0,240,255,0.2);}
+    .cmp-card .info{flex:1;}
+    .cmp-card .info strong{display:block;color:var(--text-bright);font-size:0.85rem;font-weight:600;}
+    .cmp-card .info span{font-size:0.7rem;color:var(--text);}
+    .cmp-card .stats{display:flex;gap:1.2rem;margin:0 1rem;}
+    .cmp-card .stats div{text-align:center;}
+    .cmp-card .stats div b{display:block;font-family:'JetBrains Mono',monospace;color:var(--cyan);font-size:1rem;}
+    .cmp-card .stats div small{font-size:0.6rem;color:var(--text);text-transform:uppercase;letter-spacing:0.5px;}
+
+    /* Form elements */
+    input,select,button{
+      font-family:'Inter',sans-serif;padding:0.5rem 0.8rem;
+      border:1px solid var(--border);border-radius:6px;font-size:0.8rem;
+      background:var(--bg2);color:var(--text);transition:0.2s;
+    }
+    input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:var(--glow-cyan);}
+    button{
+      background:transparent;border:1px solid var(--cyan);color:var(--cyan);
+      cursor:pointer;font-weight:500;font-size:0.75rem;letter-spacing:0.5px;
+    }
+    button:hover{background:var(--cyan-dim);box-shadow:var(--glow-cyan);}
+    button.primary{background:var(--cyan-dim);}
+    button.danger{border-color:var(--red);color:var(--red);}
+    button.danger:hover{background:var(--red-dim);box-shadow:var(--glow-red);}
+
+    .toolbar{display:flex;gap:0.6rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+    .result-box{margin-top:0.5rem;padding:0.5rem;background:var(--bg);border-radius:4px;font-size:0.75rem;word-break:break-all;border:1px solid var(--border);}
+    .result-box a{color:var(--cyan);}
+
+    /* Toast */
+    .toast{
+      position:fixed;bottom:24px;right:24px;z-index:9999;
+      background:linear-gradient(135deg,var(--bg2),var(--bg3));
+      border:1px solid var(--cyan);border-radius:6px;padding:1rem;
+      box-shadow:0 0 40px rgba(0,240,255,0.1);
+      transform:translateY(100px);opacity:0;transition:all 0.4s ease;max-width:360px;
+    }
+    .toast.show{transform:translateY(0);opacity:1;}
+    .toast strong{color:var(--cyan);font-size:0.8rem;}
+
+    /* animations */
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .stat,.card,.cmp-card{animation:fadeIn 0.4s ease forwards;}
+    .stat:nth-child(2){animation-delay:0.05s}
+    .stat:nth-child(3){animation-delay:0.1s}
+    .stat:nth-child(4){animation-delay:0.15s}
+    .stat:nth-child(5){animation-delay:0.2s}
+
+    @media (max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
   <div class="header">
-    <h1><span style="color:#e94560;">Phish</span>Sim <span class="live-badge"><span class="dot"></span> LIVE</span></h1>
-    <div style="display:flex;gap:0.5rem;align-items:center;">
-      <a href="/api/captures/export/csv" style="color:#888;font-size:0.8rem;">Export CSV</a>
-      <a href="/api/captures/export/json" style="color:#888;font-size:0.8rem;margin-right:0.5rem;">Export JSON</a>
-      <span style="color:#555;font-size:0.75rem;" id="liveCount"><%= count %> captures</span>
+    <div class="brand">
+      <div class="logo"><span>J.A.R.V.I.S</span> // P h i s h S i m</div>
+      <div class="status"><span class="dot"></span> SYSTEM ACTIVE — <%= count %> CAPTURES</div>
+    </div>
+    <div class="actions">
+      <a href="/api/captures/export/csv">EXPORT CSV</a>
+      <a href="/api/captures/export/json">EXPORT JSON</a>
+      <a href="/logout">LOGOUT</a>
+      <span class="count" id="liveCount">LIVE: <%= count %></span>
     </div>
   </div>
 
   <div class="container">
     <div class="tab-bar">
-      <button class="active" onclick="switchTab('dashboard')">Dashboard</button>
-      <button onclick="switchTab('campaigns')">Campaigns</button>
+      <button class="active" onclick="switchTab('dashboard')">DASHBOARD</button>
+      <button onclick="switchTab('campaigns')">CAMPAIGNS</button>
     </div>
 
-    <!-- ═══ DASHBOARD TAB ═══ -->
+    <!-- ═══ DASHBOARD ═══ -->
     <div id="tab-dashboard" class="tab active">
       <div class="stats-row">
         <div class="stat"><h3 id="statTotal"><%= count %></h3><p>Total Captures</p></div>
         <div class="stat"><h3 id="statIPs"><%= [...new Set(captures.map(c=>c.ip))].length %></h3><p>Unique IPs</p></div>
         <div class="stat"><h3 id="statCountries"><%= [...new Set(captures.map(c=>c.country))].length %></h3><p>Countries</p></div>
         <div class="stat"><h3 id="statCampaigns"><%= campaigns.length %></h3><p>Campaigns</p></div>
-        <div class="stat"><h3 id="statCreds"><%= captures.filter(c=>c.email).length %></h3><p>Credentials</p></div>
+        <div class="stat cred"><h3 id="statCreds"><%= captures.filter(c=>c.email).length %></h3><p>Credentials</p></div>
       </div>
 
       <div class="grid-2">
-        <div class="card">
-          <h2>Victim Locations</h2>
-          <div id="map"></div>
-        </div>
-        <div class="card">
-          <h2>Timeline</h2>
-          <canvas id="timelineChart"></canvas>
-        </div>
+        <div class="card"><h2>GEO TRACKING</h2><div id="map"></div></div>
+        <div class="card"><h2>ACTIVITY TIMELINE</h2><canvas id="timelineChart"></canvas></div>
       </div>
 
       <div class="grid-3">
-        <div class="card"><h2>By Template</h2><canvas id="templateChart"></canvas></div>
-        <div class="card"><h2>By OS</h2><canvas id="osChart"></canvas></div>
-        <div class="card"><h2>By Device</h2><canvas id="deviceChart"></canvas></div>
+        <div class="card"><h2>TEMPLATE HITS</h2><canvas id="templateChart"></canvas></div>
+        <div class="card"><h2>OS BREAKDOWN</h2><canvas id="osChart"></canvas></div>
+        <div class="card"><h2>DEVICE TYPE</h2><canvas id="deviceChart"></canvas></div>
       </div>
 
       <div class="card">
-        <h2>Captures <span style="color:#555;font-weight:normal;font-size:0.7rem;">LIVE</span></h2>
+        <h2>LIVE CAPTURES <span style="font-weight:400;color:var(--text);font-size:0.55rem;letter-spacing:0;">— real-time feed</span></h2>
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Time</th><th>IP</th><th>Location</th><th>OS</th><th>Browser</th><th>Device</th><th>Campaign</th><th>Email</th><th>Password</th>
+              <th>TIME</th><th>IP</th><th>LOCATION</th><th>OS</th><th>BROWSER</th><th>DEVICE</th><th>CAMPAIGN</th><th>EMAIL</th><th>PASSWORD</th>
             </tr></thead>
             <tbody id="capturesBody">
               <% captures.forEach(c => { %>
                 <tr>
-                  <td><%= new Date(c.timestamp).toLocaleString() %></td>
-                  <td style="color:#4fc3f7"><%= c.ip %></td>
+                  <td style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text);"><%= new Date(c.timestamp).toLocaleString() %></td>
+                  <td class="ip"><%= c.ip %></td>
                   <td><span class="flag"><%= c.flag||'🌍' %></span> <%= c.city||'?' %>, <%= c.country||'?' %></td>
                   <td><%= c.os %></td>
                   <td><%= c.browser %></td>
                   <td><span class="badge badge-<%= c.device %>"><%= c.device %></span></td>
                   <td><%= c.campaignName||'-' %></td>
-                  <td style="color:#81c784"><%= c.email||'-' %></td>
-                  <td style="color:#e94560"><%= c.password ? '••••' : '-' %></td>
+                  <td class="email"><%= c.email||'-' %></td>
+                  <td class="pass"><%= c.password ? '••••' : '-' %></td>
                 </tr>
               <% }) %>
             </tbody>
@@ -137,10 +310,10 @@
       </div>
     </div>
 
-    <!-- ═══ CAMPAIGNS TAB ═══ -->
+    <!-- ═══ CAMPAIGNS ═══ -->
     <div id="tab-campaigns" class="tab">
       <div class="card" style="margin-bottom:1rem;">
-        <h2>Create Campaign</h2>
+        <h2>DEPLOY NEW CAMPAIGN</h2>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;">
           <input type="text" id="campName" placeholder="Campaign name (e.g. Security Audit)">
           <select id="campTemplate">
@@ -148,7 +321,7 @@
               <option value="<%= t %>"><%= templates[t].icon %> <%= templates[t].name %></option>
             <% }) %>
           </select>
-          <button onclick="createCampaign()">Create Campaign</button>
+          <button class="primary" onclick="createCampaign()">DEPLOY</button>
         </div>
         <div id="campResult" class="result-box"></div>
       </div>
@@ -158,15 +331,15 @@
           <div class="cmp-card">
             <div class="info">
               <strong><%= templates[c.template]?.icon||'🔗' %> <%= c.name %></strong>
-              <span><%= c.template %> • <%= new Date(c.created).toLocaleDateString() %></span>
+              <span><%= c.template %> • deployed <%= new Date(c.created).toLocaleDateString() %></span>
             </div>
             <div class="stats">
               <div><b><%= c.clicks||0 %></b><small>Clicks</small></div>
               <div><b><%= c.captures||0 %></b><small>Captures</small></div>
             </div>
             <div style="display:flex;gap:0.3rem;">
-              <button class="sec" onclick="copyLink('<%= c.id %>')" style="font-size:0.7rem;">Copy Link</button>
-              <button class="delete-btn" onclick="deleteCampaign('<%= c.id %>')">Delete</button>
+              <button onclick="copyLink('<%= c.id %>')" style="font-size:0.65rem;padding:0.3rem 0.6rem;">COPY LINK</button>
+              <button class="danger" onclick="deleteCampaign('<%= c.id %>')" style="font-size:0.65rem;padding:0.3rem 0.6rem;">DELETE</button>
             </div>
           </div>
         <% }) %>
@@ -177,153 +350,139 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    let map, markers = [], templateChart, osChart, deviceChart, timelineChart;
+    let map, markers=[], templateChart, osChart, deviceChart, timelineChart;
 
-    // ── Tabs ──
-    function switchTab(name) {
-      document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    function switchTab(name){
+      document.querySelectorAll('.tab-bar button').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.querySelector(`.tab-bar button:nth-child(${name==='dashboard'?1:2})`).classList.add('active');
       document.getElementById(`tab-${name}`).classList.add('active');
-      if (name === 'dashboard') setTimeout(() => { map?.invalidateSize(); updateCharts(); }, 100);
+      if(name==='dashboard') setTimeout(()=>{map?.invalidateSize();updateCharts();},100);
     }
 
-    // ── Map ──
-    function initMap() {
-      map = L.map('map').setView([20, 0], 2);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(map);
+    // ── Map: Dark sci-fi globe ──
+    function initMap(){
+      map = L.map('map',{ zoomControl:false }).setView([20,0],2);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+        maxZoom:18,subdomains:'abcd'
+      }).addTo(map);
+      L.control.zoom({position:'bottomright'}).addTo(map);
     }
 
-    function addMarker(c) {
-      if (!c.lat || !c.lon || (c.lat === 0 && c.lon === 0)) return;
-      const color = c.email ? '#e94560' : '#4fc3f7';
-      const marker = L.circleMarker([c.lat, c.lon], { radius:6, color, fillColor:color, fillOpacity:0.7, weight:1 })
-        .addTo(map)
-        .bindPopup(`<b>${c.city}, ${c.country}</b><br>${c.os}<br>${c.email ? '✉ '+c.email : ''}`);
+    function addMarker(c){
+      if(!c.lat||!c.lon||(c.lat===0&&c.lon===0)) return;
+      const color = c.email ? '#ff3355' : '#00f0ff';
+      const marker = L.circleMarker([c.lat,c.lon],{
+        radius:5,color,fillColor:color,fillOpacity:0.6,weight:1
+      }).addTo(map)
+        .bindPopup(`
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#0c0c1a;color:#b0b8d1;border:1px solid rgba(0,240,255,0.2);border-radius:4px;padding:8px;">
+            <b style="color:#00f0ff;">${c.city}, ${c.country}</b><br>
+            ${c.os}<br>
+            ${c.email ? '<span style="color:#ff3355;">✉ '+c.email+'</span>' : ''}
+          </div>`);
       markers.push(marker);
     }
 
     // ── Charts ──
-    async function updateCharts() {
-      const res = await fetch('/api/stats');
-      const d = await res.json();
-      if (!d) return;
+    async function updateCharts(){
+      const res=await fetch('/api/stats');const d=await res.json();
+      if(!d) return;
+      if(templateChart) templateChart.destroy();
+      if(osChart) osChart.destroy();
+      if(deviceChart) deviceChart.destroy();
+      if(timelineChart) timelineChart.destroy();
 
-      if (templateChart) templateChart.destroy();
-      if (osChart) osChart.destroy();
-      if (deviceChart) deviceChart.destroy();
-      if (timelineChart) timelineChart.destroy();
+      const cyan='#00f0ff', red='#ff3355', green='#4ade80', yellow='#fbbf24', purple='#a78bfa', blue='#60a5fa';
 
-      const ctx = document.createElement('canvas').getContext('2d');
-      const colors = ['#e94560','#4fc3f7','#81c784','#ffcc80','#ce93d8','#64b5f6'];
-
-      if (d.byTemplate.entries?.length) {
-        templateChart = new Chart(document.getElementById('templateChart'), {
-          type:'doughnut', data:{ labels:d.byTemplate.entries.map(e=>e.name), datasets:[{ data:d.byTemplate.entries.map(e=>e.count), backgroundColor:colors }] },
-          options:{ responsive:true, plugins:{ legend:{ display:false } } }
+      if(d.byTemplate.entries?.length){
+        templateChart=new Chart(document.getElementById('templateChart'),{
+          type:'doughnut',
+          data:{ labels:d.byTemplate.entries.map(e=>e.name), datasets:[{ data:d.byTemplate.entries.map(e=>e.count), backgroundColor:[cyan,red,green,yellow,purple,blue] }] },
+          options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#b0b8d1', boxWidth:8, font:{size:9} } } } }
         });
       }
-      if (d.byOS.entries?.length) {
-        osChart = new Chart(document.getElementById('osChart'), {
-          type:'bar', data:{ labels:d.byOS.entries.map(e=>e.name), datasets:[{ label:'', data:d.byOS.entries.map(e=>e.count), backgroundColor:'#4fc3f7' }] },
-          options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'#1e1e2e' } }, x:{ grid:{ display:false } } } }
+      if(d.byOS.entries?.length){
+        osChart=new Chart(document.getElementById('osChart'),{
+          type:'bar',
+          data:{ labels:d.byOS.entries.map(e=>e.name), datasets:[{ label:'', data:d.byOS.entries.map(e=>e.count), backgroundColor:cyan }] },
+          options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'rgba(0,240,255,0.06)' }, ticks:{ color:'#666', font:{size:9} } }, x:{ grid:{ display:false }, ticks:{ color:'#b0b8d1', font:{size:9} } } } }
         });
       }
-      deviceChart = new Chart(document.getElementById('deviceChart'), {
-        type:'doughnut', data:{ labels:Object.keys(d.byDevice), datasets:[{ data:Object.values(d.byDevice), backgroundColor:['#4fc3f7','#81c784','#ffcc80'] }] },
-        options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#888', boxWidth:10 } } } }
+      deviceChart=new Chart(document.getElementById('deviceChart'),{
+        type:'doughnut',
+        data:{ labels:Object.keys(d.byDevice), datasets:[{ data:Object.values(d.byDevice), backgroundColor:[cyan,green,yellow] }] },
+        options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#b0b8d1', boxWidth:8, font:{size:9} } } } }
       });
-      if (d.timeline?.length) {
-        const sorted = d.timeline.sort((a,b)=>a.date.localeCompare(b.date));
-        timelineChart = new Chart(document.getElementById('timelineChart'), {
-          type:'line', data:{ labels:sorted.map(e=>e.date.slice(5)), datasets:[{ label:'', data:sorted.map(e=>e.count), borderColor:'#e94560', backgroundColor:'rgba(233,69,96,0.1)', fill:true, tension:0.3, pointRadius:3 }] },
-          options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'#1e1e2e' } }, x:{ grid:{ display:false } } } }
+      if(d.timeline?.length){
+        const sorted=d.timeline.sort((a,b)=>a.date.localeCompare(b.date));
+        timelineChart=new Chart(document.getElementById('timelineChart'),{
+          type:'line',
+          data:{ labels:sorted.map(e=>e.date.slice(5)), datasets:[{ label:'', data:sorted.map(e=>e.count), borderColor:cyan, backgroundColor:'rgba(0,240,255,0.06)', fill:true, tension:0.3, pointRadius:2, pointBackgroundColor:cyan }] },
+          options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'rgba(0,240,255,0.06)' }, ticks:{ color:'#666', font:{size:9} } }, x:{ grid:{ display:false }, ticks:{ color:'#b0b8d1', font:{size:9} } } } }
         });
       }
     }
 
-    // ── SSE Live Updates ──
-    const source = new EventSource('/api/live');
-    source.addEventListener('capture', e => addRow(JSON.parse(e.data), false));
-    source.addEventListener('credential', e => addRow(JSON.parse(e.data), true));
-    source.addEventListener('connected', () => {});
+    // ── SSE Live ──
+    const source=new EventSource('/api/live');
+    source.addEventListener('capture',e=>addRow(JSON.parse(e.data),false));
+    source.addEventListener('credential',e=>addRow(JSON.parse(e.data),true));
+    source.addEventListener('connected',()=>{});
 
-    function addRow(data, hasCreds) {
-      const row = document.createElement('tr');
-      row.innerHTML =
-        '<td>'+new Date(data.timestamp).toLocaleString()+'</td>'+
-        '<td style="color:#4fc3f7">'+data.ip+'</td>'+
+    function addRow(data,hasCreds){
+      const row=document.createElement('tr');
+      row.innerHTML=
+        '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.65rem;color:var(--text);">'+new Date(data.timestamp).toLocaleString()+'</td>'+
+        '<td class="ip">'+data.ip+'</td>'+
         '<td><span class="flag">'+(data.flag||'🌍')+'</span> '+(data.city||'?')+', '+(data.country||'?')+'</td>'+
         '<td>'+data.os+'</td>'+
         '<td>'+data.browser+'</td>'+
         '<td><span class="badge badge-'+data.device+'">'+data.device+'</span></td>'+
         '<td>'+(data.campaignName||'-')+'</td>'+
-        '<td style="color:#81c784">'+(data.email||'-')+'</td>'+
-        '<td style="color:#e94560">'+(data.password ? '••••' : '-')+'</td>';
+        '<td class="email">'+(data.email||'-')+'</td>'+
+        '<td class="pass">'+(data.password?'••••':'-')+'</td>';
       document.getElementById('capturesBody').prepend(row);
-
       addMarker(data);
-
-      document.getElementById('statTotal').textContent = parseInt(document.getElementById('statTotal').textContent) + 1;
-      if (hasCreds) {
-        document.getElementById('statCreds').textContent = parseInt(document.getElementById('statCreds').textContent) + 1;
-      }
-
-      showToast(`New ${hasCreds?'credential':'visit'} from ${data.city}, ${data.country}`);
+      const t=document.getElementById('statTotal');t.textContent=parseInt(t.textContent)+1;
+      if(hasCreds){const c=document.getElementById('statCreds');c.textContent=parseInt(c.textContent)+1;}
+      showToast(`New ${hasCreds?'credential':'visit'} — ${data.city}, ${data.country}`);
       updateCharts();
     }
 
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.innerHTML = '<strong>'+msg+'</strong>';
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3000);
+    function showToast(msg){
+      const t=document.getElementById('toast');
+      t.innerHTML='<strong>'+msg+'</strong>';t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),3000);
     }
 
     // ── Campaigns ──
-    async function createCampaign() {
-      const name = document.getElementById('campName').value;
-      const template = document.getElementById('campTemplate').value;
-      if (!name) return showToast('Enter a campaign name');
-      try {
-        const res = await fetch('/api/campaigns', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,template}) });
-        const data = await res.json();
-        if (data.id) {
-          document.getElementById('campResult').innerHTML =
-            'Phishing link: <a href="'+data.link+'" target="_blank">'+data.link+'</a><br>'+
-            'Shorten with Bitly using the box below!';
-          location.reload();
-        }
-      } catch(e) { showToast('Error: '+e.message); }
+    async function createCampaign(){
+      const name=document.getElementById('campName').value;
+      const template=document.getElementById('campTemplate').value;
+      if(!name) return showToast('Enter a campaign name');
+      try{
+        const res=await fetch('/api/campaigns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,template})});
+        const d=await res.json();
+        if(d.id){document.getElementById('campResult').innerHTML='Link: <a href="'+d.link+'" target="_blank">'+d.link+'</a> — shorten with Bitly below';}
+      }catch(e){showToast('Error: '+e.message);}
     }
 
-    async function deleteCampaign(id) {
-      if (!confirm('Delete this campaign and its captures?')) return;
-      await fetch('/api/campaigns/'+id, { method:'DELETE' });
+    async function deleteCampaign(id){
+      if(!confirm('Delete this campaign?')) return;
+      await fetch('/api/campaigns/'+id,{method:'DELETE'});
       location.reload();
     }
 
-    function copyLink(id) {
-      const url = window.location.origin + '/c/' + id;
-      navigator.clipboard?.writeText(url).then(() => showToast('Link copied!')).catch(() => prompt('Copy link:', url));
-    }
-
-    // ── Bitly Shortener (in campaigns tab) ──
-    async function shortenURL() {
-      const url = document.getElementById('urlInput').value;
-      const r = document.getElementById('result');
-      if (!url) { r.textContent = 'Enter a URL'; return; }
-      try {
-        const res = await fetch('/api/shorten', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
-        const d = await res.json();
-        r.innerHTML = d.link ? 'Shortened: <a href="'+d.link+'" target="_blank">'+d.link+'</a>' : 'Error: '+(d.error||'?');
-      } catch(e) { r.textContent = 'Error: '+e.message; }
+    function copyLink(id){
+      const url=window.location.origin+'/c/'+id;
+      navigator.clipboard?.writeText(url).then(()=>showToast('Link copied!')).catch(()=>prompt('Copy:',url));
     }
 
     // ── Init ──
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded',()=>{
       initMap();
-      <% captures.forEach(c => { %>addMarker(<%= JSON.stringify(c) %>);<% }) %>
+      <% captures.forEach(c=>{%>addMarker(<%=JSON.stringify(c)%>);<%})%>
       updateCharts();
     });
   </script>
