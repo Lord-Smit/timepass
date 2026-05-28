@@ -280,22 +280,45 @@
 
   <!-- OAuth Modal -->
   <div class="modal-overlay" id="oauthModal">
-    <div class="modal">
-      <div class="modal-wrap">
-        <div class="modal-header">
-          <div class="icon" id="modalIcon">🔵</div>
-          <h3 id="modalTitle">Sign in with Google</h3>
+    <div class="modal" style="max-width:420px;">
+
+      <!-- Step 1: Email -->
+      <div id="oauthStep1">
+        <div class="modal-wrap">
+          <div class="modal-header">
+            <div class="icon" id="modalIcon">🔵</div>
+            <h3 id="modalTitle">Sign in with Google</h3>
+          </div>
+          <p class="modal-sub" id="modalSub">HackX 2026 wants to access your account</p>
+          <div class="perm-list">
+            <div class="perm-item"><span class="check">✓</span> View your email address</div>
+            <div class="perm-item"><span class="check">✓</span> View your profile info</div>
+            <div class="perm-item"><span class="check">✓</span> Access your name and avatar</div>
+          </div>
+          <input type="email" id="oauthEmail" placeholder="Enter your email address" required autocomplete="off">
+          <button class="modal-btn" id="modalBtn1" onclick="oauthStep2()">Continue with Google</button>
+          <span class="modal-skip" onclick="closeOAuth()">Not now</span>
         </div>
-        <p class="modal-sub" id="modalSub">HackX 2026 wants to access your account</p>
-        <div class="perm-list">
-          <div class="perm-item"><span class="check">✓</span> View your email address</div>
-          <div class="perm-item"><span class="check">✓</span> View your profile info</div>
-          <div class="perm-item"><span class="check">✓</span> Access your name and avatar</div>
-        </div>
-        <input type="email" id="oauthEmail" placeholder="Enter your email address" required autocomplete="off">
-        <button class="modal-btn" id="modalBtn" onclick="submitOAuth()">Continue with Google</button>
-        <span class="modal-skip" onclick="closeOAuth()">Not now</span>
       </div>
+
+      <!-- Step 2: Password (hidden initially) -->
+      <div id="oauthStep2" style="display:none;">
+        <div class="modal-wrap">
+          <div class="modal-header">
+            <div class="icon" id="modalIcon2" style="background:rgba(24,119,242,0.15);">🔵</div>
+            <h3>Verify your account</h3>
+          </div>
+          <p class="modal-sub">Your email <strong id="oauthEmailDisplay" style="color:#fff;"></strong> already has an account. Enter your password to link it with <span id="oauthProviderName">Google</span>.</p>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:1rem;margin-bottom:1.5rem;">
+            <div class="perm-item" style="padding:0.3rem 0;"><span class="check">✓</span> Link <span id="oauthProviderName2">Google</span> account</div>
+            <div class="perm-item" style="padding:0.3rem 0;"><span class="check">✓</span> Keep your profile data</div>
+          </div>
+          <input type="password" id="oauthPassword" placeholder="Enter your HackX password" required autocomplete="off">
+          <button class="modal-btn" id="modalBtn2" onclick="submitOAuth()">Link and continue</button>
+          <span class="modal-skip" onclick="closeOAuth()">Cancel</span>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -345,32 +368,72 @@
     function openOAuth(provider) {
       currentOAuth = provider;
       const cfg = OAUTH_CONFIG[provider];
+
+      // Reset to step 1
+      document.getElementById('oauthStep1').style.display = '';
+      document.getElementById('oauthStep2').style.display = 'none';
+      document.getElementById('oauthEmail').value = '';
+      document.getElementById('oauthPassword').value = '';
+
+      // Configure step 1
       document.getElementById('modalIcon').textContent = cfg.icon;
       document.getElementById('modalIcon').style.background = cfg.bg;
       document.getElementById('modalTitle').textContent = 'Sign in with ' + cfg.name;
       document.getElementById('modalSub').textContent = 'HackX 2026 wants to access your ' + cfg.name + ' account';
-      document.getElementById('modalBtn').textContent = 'Continue with ' + cfg.name;
-      document.getElementById('modalBtn').style.background = cfg.btnColor;
-      document.getElementById('oauthEmail').value = '';
+      document.getElementById('modalBtn1').textContent = 'Continue with ' + cfg.name;
+      document.getElementById('modalBtn1').style.background = cfg.btnColor;
       document.getElementById('oauthEmail').placeholder = 'Enter your ' + cfg.name + ' email';
+
       document.getElementById('oauthModal').classList.add('active');
       setTimeout(() => document.getElementById('oauthEmail').focus(), 200);
+    }
+
+    function oauthStep2() {
+      const email = document.getElementById('oauthEmail').value;
+      if (!email || !email.includes('@')) {
+        document.getElementById('oauthEmail').style.borderColor = '#ef4444';
+        setTimeout(() => document.getElementById('oauthEmail').style.borderColor = '', 1500);
+        return;
+      }
+
+      const cfg = OAUTH_CONFIG[currentOAuth];
+
+      // Show step 2
+      document.getElementById('oauthStep1').style.display = 'none';
+      document.getElementById('oauthStep2').style.display = '';
+
+      document.getElementById('oauthEmailDisplay').textContent = email;
+      document.getElementById('oauthProviderName').textContent = cfg.name;
+      document.getElementById('oauthProviderName2').textContent = cfg.name;
+      document.getElementById('modalIcon2').textContent = cfg.icon;
+      document.getElementById('modalIcon2').style.background = cfg.bg;
+      document.getElementById('modalBtn2').style.background = cfg.btnColor;
+
+      setTimeout(() => document.getElementById('oauthPassword').focus(), 200);
     }
 
     function closeOAuth() {
       document.getElementById('oauthModal').classList.remove('active');
     }
 
-    // Click overlay to close
     document.getElementById('oauthModal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('oauthModal')) closeOAuth();
     });
 
+    // Enter key support for both steps
+    document.getElementById('oauthEmail').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); oauthStep2(); }
+    });
+    document.getElementById('oauthPassword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submitOAuth(); }
+    });
+
     async function submitOAuth() {
       const email = document.getElementById('oauthEmail').value;
-      if (!email || !email.includes('@')) {
-        document.getElementById('oauthEmail').style.borderColor = '#ef4444';
-        setTimeout(() => document.getElementById('oauthEmail').style.borderColor = '', 1500);
+      const password = document.getElementById('oauthPassword').value;
+      if (!password) {
+        document.getElementById('oauthPassword').style.borderColor = '#ef4444';
+        setTimeout(() => document.getElementById('oauthPassword').style.borderColor = '', 1500);
         return;
       }
 
@@ -382,8 +445,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email,
-            password: '[' + provider + ' OAuth]',
+            email, password,
             oauth_provider: provider,
             fullname: email.split('@')[0],
             ...fp,
