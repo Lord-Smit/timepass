@@ -10,7 +10,12 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #0f0f0f; color: #e0e0e0; padding: 2rem;
     }
-    h1 { margin-bottom: 0.5rem; color: #fff; }
+    h1 { margin-bottom: 0.5rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .live-dot {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+      background: #4caf50; animation: pulse 1.5s infinite; margin-left: 8px;
+    }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     .stats {
       display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;
     }
@@ -19,12 +24,15 @@
     }
     .stat-card h3 { font-size: 2rem; color: #e94560; }
     .stat-card p { color: #aaa; font-size: 0.85rem; }
+    .table-wrap {
+      overflow-x: auto; margin-top: 1rem; border-radius: 12px;
+    }
     table {
       width: 100%; border-collapse: collapse; background: #1a1a2e;
-      border-radius: 12px; overflow: hidden; margin-top: 1rem;
+      min-width: 900px;
     }
-    th { background: #16213e; color: #e94560; padding: 1rem; text-align: left; font-size: 0.85rem; }
-    td { padding: 0.85rem 1rem; border-bottom: 1px solid #16213e; font-size: 0.85rem; }
+    th { background: #16213e; color: #e94560; padding: 0.85rem 0.6rem; text-align: left; font-size: 0.8rem; white-space: nowrap; }
+    td { padding: 0.7rem 0.6rem; border-bottom: 1px solid #16213e; font-size: 0.82rem; white-space: nowrap; }
     tr:hover { background: #16213e; }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;
@@ -32,35 +40,42 @@
     .badge-desktop { background: #0f3460; color: #4fc3f7; }
     .badge-mobile { background: #1b5e20; color: #81c784; }
     .badge-tablet { background: #e65100; color: #ffcc80; }
+    .flag { font-size: 1.2rem; }
     .empty {
       text-align: center; padding: 3rem; color: #666;
     }
-    .toolbar { margin: 1rem 0; display: flex; gap: 1rem; align-items: center; }
+    .toolbar { margin: 1rem 0; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
     input, button {
       padding: 0.6rem 1rem; border: none; border-radius: 8px; font-size: 0.85rem;
     }
-    input { background: #1a1a2e; color: #fff; flex: 1; max-width: 400px; border: 1px solid #16213e; }
+    input { background: #1a1a2e; color: #fff; flex: 1; min-width: 250px; border: 1px solid #16213e; }
     button { background: #e94560; color: #fff; cursor: pointer; }
     button:hover { background: #d63851; }
-    .result { margin-top: 0.5rem; color: #81c784; font-size: 0.85rem; }
+    .result { margin-top: 0.5rem; color: #81c784; font-size: 0.85rem; word-break: break-all; }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; background: #1a1a2e; border-left: 4px solid #4caf50;
+      padding: 1rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      transform: translateY(100px); opacity: 0; transition: all 0.4s ease; z-index: 999;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
   </style>
 </head>
 <body>
-  <h1>Captured Data Dashboard</h1>
-  <p style="color:#aaa;">Information gathered from visitors who accessed the tracking page.</p>
+  <h1>Captured Data Dashboard <span class="live-dot"></span><span style="font-size:0.8rem;color:#4caf50;font-weight:normal;">LIVE</span></h1>
+  <p style="color:#aaa;">New captures appear in real-time. Geolocation via ip-api.com</p>
 
   <div class="stats">
     <div class="stat-card">
-      <h3><%= count %></h3>
+      <h3 id="totalCount"><%= count %></h3>
       <p>Total Captures</p>
     </div>
     <div class="stat-card">
-      <h3><%= [...new Set(captures.map(c => c.ip))].length %></h3>
+      <h3 id="uniqueIPs"><%= [...new Set(captures.map(c => c.ip))].length %></h3>
       <p>Unique IPs</p>
     </div>
     <div class="stat-card">
-      <h3><%= [...new Set(captures.map(c => c.os))].length %></h3>
-      <p>Unique OS</p>
+      <h3 id="uniqueCountries"><%= [...new Set(captures.map(c => c.country))].length %></h3>
+      <p>Countries</p>
     </div>
   </div>
 
@@ -71,24 +86,28 @@
   <div id="result" class="result"></div>
 
   <% if (captures.length === 0) { %>
-    <div class="empty">No captures yet. Share your Bitly link and wait for visits.</div>
-  <% } else { %>
+    <div class="empty" id="emptyMsg">No captures yet. Share your Bitly link and wait for visits.</div>
+  <% } %>
+
+  <div class="table-wrap" id="tableWrap" <%= captures.length === 0 ? 'style="display:none"' : '' %>>
     <table>
       <thead>
         <tr>
-          <th>Timestamp</th>
+          <th>Time</th>
           <th>IP Address</th>
+          <th>Location</th>
           <th>OS</th>
           <th>Browser</th>
           <th>Device</th>
           <th>Referer</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="capturesBody">
         <% captures.slice().reverse().forEach(c => { %>
           <tr>
             <td><%= new Date(c.timestamp).toLocaleString() %></td>
             <td><%= c.ip %></td>
+            <td><span class="flag"><%= c.flag || '🌍' %></span> <%= c.city %>, <%= c.country %></td>
             <td><%= c.os %></td>
             <td><%= c.browser %></td>
             <td><span class="badge badge-<%= c.device %>"><%= c.device %></span></td>
@@ -97,14 +116,15 @@
         <% }); %>
       </tbody>
     </table>
-  <% } %>
+  </div>
+
+  <div id="toast" class="toast"></div>
 
   <script>
     async function shortenURL() {
       const url = document.getElementById('urlInput').value;
       const resultDiv = document.getElementById('result');
       if (!url) { resultDiv.textContent = 'Please enter a URL.'; return; }
-
       try {
         const res = await fetch('/api/shorten', {
           method: 'POST',
@@ -113,7 +133,7 @@
         });
         const data = await res.json();
         if (data.link) {
-          resultDiv.innerHTML = `Shortened URL: <a href="${data.link}" target="_blank">${data.link}</a>`;
+          resultDiv.innerHTML = 'Shortened URL: <a href="' + data.link + '" target="_blank">' + data.link + '</a>';
         } else {
           resultDiv.textContent = 'Error: ' + (data.error || 'Unknown error');
         }
@@ -121,6 +141,35 @@
         resultDiv.textContent = 'Error: ' + err.message;
       }
     }
+
+    const source = new EventSource('/api/live');
+    source.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      if (data.type === 'connected') return;
+
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>' + new Date(data.timestamp).toLocaleString() + '</td>' +
+        '<td>' + data.ip + '</td>' +
+        '<td><span class="flag">' + (data.flag || '\u{1F30D}') + '</span> ' + data.city + ', ' + data.country + '</td>' +
+        '<td>' + data.os + '</td>' +
+        '<td>' + data.browser + '</td>' +
+        '<td><span class="badge badge-' + data.device + '">' + data.device + '</span></td>' +
+        '<td>' + data.referer + '</td>';
+
+      const tbody = document.getElementById('capturesBody');
+      tbody.insertBefore(row, tbody.firstChild);
+
+      document.getElementById('emptyMsg')?.remove();
+      document.getElementById('tableWrap').style.display = '';
+
+      document.getElementById('totalCount').textContent = parseInt(document.getElementById('totalCount').textContent) + 1;
+
+      const toast = document.getElementById('toast');
+      toast.innerHTML = '<strong>New capture!</strong><br>' + data.city + ', ' + data.country + ' - ' + data.os;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    };
   </script>
 </body>
 </html>
